@@ -76,7 +76,7 @@ class Client(object):
                  protocol=None, verify_ssl=True, allow_redirects=False, path=None, cert=None):
         if not port:
             port = 443 if protocol == 'https' else 80
-        if protocol is None:
+        if not protocol:
             if int(port) == 443:
                 protocol = 'https'
             else:
