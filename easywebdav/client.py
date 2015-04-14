@@ -33,6 +33,7 @@ def prop(elem, name, default=None):
     child = elem.find('.//{DAV:}' + name)
     return default if child is None or child.text is None else child.text
 
+
 def elem2file(elem):
     return File(
         prop(elem, 'href'),
@@ -72,9 +73,14 @@ class OperationFailed(WebdavException):
 
 class Client(object):
     def __init__(self, host, port=0, auth=None, username=None, password=None,
-                 protocol='http', verify_ssl=True, path=None, cert=None):
+                 protocol=None, verify_ssl=True, allow_redirects=False, path=None, cert=None):
         if not port:
             port = 443 if protocol == 'https' else 80
+        if protocol is None:
+            if int(port) == 443:
+                protocol = 'https'
+            else:
+                protocol = 'http'
         self.baseurl = '{0}://{1}:{2}'.format(protocol, host, port)
         if path:
             self.baseurl = '{0}/{1}'.format(self.baseurl, path)
@@ -82,6 +88,10 @@ class Client(object):
         self.session = requests.session()
         self.session.verify = verify_ssl
         self.session.stream = True
+        if allow_redirects is True:
+            self.allow_redirects = True
+        else:
+            self.allow_redirects = False
 
         if cert:
             self.session.cert = cert
@@ -93,7 +103,7 @@ class Client(object):
 
     def _send(self, method, path, expected_code, **kwargs):
         url = self._get_url(path)
-        response = self.session.request(method, url, allow_redirects=False, **kwargs)
+        response = self.session.request(method, url, allow_redirects=self.allow_redirects, **kwargs)
         if isinstance(expected_code, Number) and response.status_code != expected_code \
             or not isinstance(expected_code, Number) and response.status_code not in expected_code:
             raise OperationFailed(method, path, expected_code, response.status_code)
